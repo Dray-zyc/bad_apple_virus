@@ -1,0 +1,47 @@
+name: Build bad_apple_virus
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest  # 使用最新的 Windows 运行器
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # 如果项目包含子模块，确保一并拉取
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable  # 安装稳定版 Rust 工具链
+        with:
+          targets: x86_64-pc-windows-msvc  # 指定 Windows 编译目标
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build release binary
+        run: cargo build --release --target x86_64-pc-windows-msvc
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"  # 静态链接 C 运行时，避免依赖问题
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bad_apple_virus-windows-x64
+          path: target/x86_64-pc-windows-msvc/release/bad_apple_virus.exe
+          if-no-files-found: error  # 如果找不到 exe，则报错
