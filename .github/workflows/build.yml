@@ -1,4 +1,4 @@
-name: Build bad_apple_virus
+name: Build bad_apple
 
 on:
   push:
@@ -43,23 +43,36 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=+crt-static"
 
+      - name: List built artifacts
+        if: always()
+        run: |
+          Write-Host "=== target\x86_64-pc-windows-msvc\release ==="
+          Get-ChildItem -Path target\x86_64-pc-windows-msvc\release -Force -ErrorAction SilentlyContinue | Select-Object Name, Length
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bad_apple_virus-windows-x64
+          name: bad_apple-windows-x64
           path: target/x86_64-pc-windows-msvc/release/*.exe
           if-no-files-found: error
 
       - name: Package release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          Compress-Archive -Path target\x86_64-pc-windows-msvc\release\bad_apple_virus.exe, assets -DestinationPath bad_apple_virus.zip
+          $exe = Get-ChildItem -Path target\x86_64-pc-windows-msvc\release -Filter *.exe -File -ErrorAction SilentlyContinue
+          if (-not $exe) {
+            Write-Error "No executable found in target\x86_64-pc-windows-msvc\release"
+            Get-ChildItem -Path target -Recurse -Force -ErrorAction SilentlyContinue | Select-Object FullName
+            exit 1
+          }
+          Write-Host "Found executable: $($exe.FullName)"
+          Compress-Archive -Path $exe.FullName, assets -DestinationPath bad_apple.zip
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: bad_apple_virus.zip
+          files: bad_apple.zip
           name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           draft: false
