@@ -3,9 +3,14 @@ name: Build bad_apple_virus
 on:
   push:
     branches: [ master, main ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
@@ -38,19 +43,26 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=+crt-static"
 
-      - name: List build artifacts
-        if: always()
-        run: |
-          echo "=== target root ==="
-          dir target
-          echo "=== target\release ==="
-          dir target\release || true
-          echo "=== target\x86_64-pc-windows-msvc\release ==="
-          dir target\x86_64-pc-windows-msvc\release || true
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: bad_apple_virus-windows-x64
           path: target/x86_64-pc-windows-msvc/release/*.exe
           if-no-files-found: error
+
+      - name: Package release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          Compress-Archive -Path target\x86_64-pc-windows-msvc\release\bad_apple_virus.exe, assets -DestinationPath bad_apple_virus.zip
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bad_apple_virus.zip
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
