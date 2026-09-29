@@ -95,7 +95,7 @@ impl DeferredWindow {
                 WS_EX_TOPMOST | WS_EX_TOOLWINDOW, // no taskbar, Close button only
                 PCSTR(WND_CLASS.as_ptr() as _),
                 s!("Bad Apple!!"),
-                WS_POPUP,
+                WS_OVERLAPPEDWINDOW,
                 // WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME,
                 // x,y,w,h
                 x,
@@ -341,17 +341,32 @@ fn main() {
                         };
 
                         let win = windows.next().unwrap();
-                        // windows have padding, cbf working out exactly what
-                        const FUDGE_X: i32 = 0;
-                        const FUDGE_Y: i32 = 0;
+
+                        // 计算期望的客户区尺寸
+                        let desired_w = (coords.w.get() as f32 * ratio_x) as i32;
+                        let desired_h = (coords.h.get() as f32 * ratio_y) as i32;
+
+                        // 用 AdjustWindowRectEx 精确计算包含边框和标题栏的总窗口尺寸
+                        let mut rect = RECT {
+                            left: 0,
+                            top: 0,
+                            right: desired_w,
+                            bottom: desired_h,
+                        };
+                        unsafe {
+                            let _ = AdjustWindowRectEx(
+                                &mut rect,
+                                WS_OVERLAPPEDWINDOW,
+                                BOOL(0),
+                                WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+                            );
+                        }
+
                         win.set_pos(
                             (coords.x as f32 * ratio_x) as i32,
                             (coords.y as f32 * ratio_y) as i32,
                         );
-                        win.set_sz(
-                            (coords.w.get() as f32 * ratio_x) as i32 + FUDGE_X,
-                            (coords.h.get() as f32 * ratio_y) as i32 + FUDGE_Y,
-                        );
+                        win.set_sz(rect.right - rect.left, rect.bottom - rect.top);
                         win.set_visible(true);
                     }
 
