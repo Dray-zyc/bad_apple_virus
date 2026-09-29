@@ -95,7 +95,7 @@ impl DeferredWindow {
                 WS_EX_TOPMOST | WS_EX_TOOLWINDOW, // no taskbar, Close button only
                 PCSTR(WND_CLASS.as_ptr() as _),
                 s!("Bad Apple!!"),
-                WS_OVERLAPPEDWINDOW,
+                WS_POPUP,
                 // WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME,
                 // x,y,w,h
                 x,
@@ -342,8 +342,8 @@ fn main() {
 
                         let win = windows.next().unwrap();
                         // windows have padding, cbf working out exactly what
-                        const FUDGE_X: i32 = 15;
-                        const FUDGE_Y: i32 = 8;
+                        const FUDGE_X: i32 = 0;
+                        const FUDGE_Y: i32 = 0;
                         win.set_pos(
                             (coords.x as f32 * ratio_x) as i32,
                             (coords.y as f32 * ratio_y) as i32,
